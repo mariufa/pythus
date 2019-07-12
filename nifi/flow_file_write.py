@@ -1,6 +1,7 @@
 import shutil 
 import struct
 import io
+import json
 
 # Example usage
 # import io 
@@ -30,7 +31,7 @@ def write_flow_file_stream(fp, attrs, size, fileobj):
 
     for key, value in attrs.items():
         write_string(fp, key)
-        write_string(fp, value)
+        write_string(fp, json.dumps(value))
 
     fp.write(struct.pack('>Q', size))
     shutil.copyfileobj(fileobj, fp)

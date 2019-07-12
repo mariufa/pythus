@@ -46,7 +46,7 @@ class ProcessManager:
         history = message["history"]
         processor_to_start = None
         for processor in self.processors:
-            if filetype in processor.get_mime_types() and  processor.__name__ not in history:
+            if (filetype in processor.get_mime_types() or processor.get_mime_types()[0] == "*") and  processor.__name__ not in history:
                 processor_to_start = processor
                 break
 
@@ -105,7 +105,8 @@ def watch_input_directory():
                                 "filename" : attrs["filename"],
                                 "filetype": "plain/text",
                                 "nifi_attrs": attrs,
-                                "history": []
+                                "history": [],
+                                "metadata": {}
                             }
 
                             print(message)
