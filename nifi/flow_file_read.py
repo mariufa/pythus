@@ -28,7 +28,7 @@ def read_string(fp):
 
 def read_flow_file_stream(fp):
     while True:
-        if fp.read(len(MAGIC_HEADER)) != MAGIC_HEADER:
+        if  fp.read(len(MAGIC_HEADER)) != MAGIC_HEADER:
             break
 
         attrs = {}
@@ -38,7 +38,7 @@ def read_flow_file_stream(fp):
             value = read_string(fp)
             attrs[key] = value
 
-        size = struct.unpack('>Q', fp.read(8))
+        size, = struct.unpack('>Q', fp.read(8))
         offset = fp.tell()
         yield attrs, offset, size
         fp.seek(offset + size)

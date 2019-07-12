@@ -3,10 +3,14 @@ import pkgutil
 import importlib
 import threading
 import json
+from nifi.flow_file_read import *
+from nifi.flow_file_write import *
+import uuid
 
 import time
-from os import walk, rename
+from os import walk, rename, remove
 from os.path import join
+import io
 
 class ProcessManager:
 
@@ -35,7 +39,43 @@ class ProcessManager:
 
 
     def handle_event(self, ch, method, properties, body):
-        print(" [x]  Received %r" % json.loads(body))
+        message = json.loads(body)
+        print(" [x]  Received %r" % message)
+
+        filetype = message["filetype"]
+        history = message["history"]
+        processor_to_start = None
+        for processor in self.processors:
+            if filetype in processor.get_mime_types() and  processor.__name__ not in history:
+                processor_to_start = processor
+                break
+
+        if processor_to_start != None:
+            message["history"].append(processor_to_start.__name__)
+            print(processor_to_start.__name__)
+            processor_thread = threading.Thread(target=processor.run, args=(message,))
+            processor_thread.start()
+        else:
+            file_path = message["path"]
+            output_dir = "./output"
+            attrs = self.generate_attrs(message)
+            with open(message["path"], 'rb') as done_file:
+                data  = done_file.read()
+                with open(join(output_dir, str(uuid.uuid4())), 'wb') as output_file:
+                    write_flow_file_stream(output_file, attrs, len(data), io.BytesIO(data))
+            remove(message["path"])
+            
+
+    def generate_attrs(self, message):
+        attrs = {}
+        attrs["filename"] = message["filename"]
+        attrs["filetype"] = message["filetype"]
+        if 'metadata' in message:
+            attrs["metadata"] = message["metadata"]
+        return attrs
+
+
+
         
     def watch_input_directory(self):
         watch_thread = threading.Thread(target=watch_input_directory)
@@ -51,11 +91,27 @@ def watch_input_directory():
             for name in filenames:
                 if (name[0] != '.'):
                     print(name)
-                    rename(join(root, name), join(DIRECTORY_TO_MOVE_TO, name))
-                    message = {
-                        "path": join(DIRECTORY_TO_MOVE_TO, name)
-                    }
-                    sendToQueue(message)
+
+                    with open(join(root, name), 'rb') as f:
+                        for attrs, offset, size in read_flow_file_stream(f):
+                            f.seek(offset)
+                            data = f.read(size)
+                            new_file_name = join(DIRECTORY_TO_MOVE_TO, str(uuid.uuid4()))
+                            with open(new_file_name, 'wb') as new_f:
+                                new_f.write(data)
+
+                            message = {
+                                "path": new_file_name,
+                                "filename" : attrs["filename"],
+                                "filetype": "plain/text",
+                                "nifi_attrs": attrs,
+                                "history": []
+                            }
+
+                            print(message)
+                            sendToQueue(message)
+                            remove(join(root, name))
+
 
 
 def sendToQueue(message):

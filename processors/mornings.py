@@ -1,3 +1,18 @@
+import pika
+import json
 
-def run():
-    print("morn")
+def get_mime_types():
+    return [
+        "plain/text"
+    ]
+
+def run(message):
+    sendEvent(message)
+
+def sendEvent(message):
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host='localhost')
+    )
+    channel = connection.channel()
+    channel.queue_declare(queue='events')
+    channel.basic_publish(exchange='', routing_key='events', body=json.dumps(message))
