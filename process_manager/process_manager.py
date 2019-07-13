@@ -9,7 +9,7 @@ import uuid
 
 import time
 from os import walk, rename, remove
-from os.path import join
+from os.path import join, getsize
 import io
 
 class ProcessManager:
@@ -56,13 +56,12 @@ class ProcessManager:
             processor_thread = threading.Thread(target=processor.run, args=(message,))
             processor_thread.start()
         else:
-            file_path = message["path"]
             output_dir = "./output"
             attrs = self.generate_attrs(message)
             with open(message["path"], 'rb') as done_file:
-                data  = done_file.read()
+                file_size  = getsize(message["path"])
                 with open(join(output_dir, str(uuid.uuid4())), 'wb') as output_file:
-                    write_flow_file_stream(output_file, attrs, len(data), io.BytesIO(data))
+                    write_flow_file_stream(output_file, attrs, file_size, done_file)
             remove(message["path"])
             
 
@@ -73,9 +72,6 @@ class ProcessManager:
         if 'metadata' in message:
             attrs["metadata"] = message["metadata"]
         return attrs
-
-
-
         
     def watch_input_directory(self):
         watch_thread = threading.Thread(target=watch_input_directory)
@@ -95,10 +91,21 @@ def watch_input_directory():
                     with open(join(root, name), 'rb') as f:
                         for attrs, offset, size in read_flow_file_stream(f):
                             f.seek(offset)
-                            data = f.read(size)
+                            #data = f.read(size)
                             new_file_name = join(DIRECTORY_TO_MOVE_TO, str(uuid.uuid4()))
                             with open(new_file_name, 'wb') as new_f:
-                                new_f.write(data)
+                                chunk_size = 4096
+                                if size < chunk_size:
+                                    chunk_size = size
+                                chunk = f.read(chunk_size)
+                                while chunk:
+                                    new_f.write(chunk)
+                                    size = size - chunk_size
+                                    if size == 0:
+                                        break
+                                    elif size < chunk_size:
+                                        chunk_size = size
+                                    chunk = f.read(chunk_size)
 
                             message = {
                                 "path": new_file_name,
@@ -112,8 +119,6 @@ def watch_input_directory():
                             print(message)
                             sendToQueue(message)
                             remove(join(root, name))
-
-
 
 def sendToQueue(message):
     connection = pika.BlockingConnection(
