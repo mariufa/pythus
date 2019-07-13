@@ -7,12 +7,18 @@ def get_mime_types():
     ]
 
 def run(message):
-    data = None
+    md5 = hashlib.md5()
+    sha1 = hashlib.sha1()
+    sha256 = hashlib.sha256()
+    chunk_size = 4096
     with open(message["path"], 'rb') as f:
-        data = f.read()
-    md5 = hashlib.md5(data)
-    sha1 = hashlib.sha1(data)
-    sha256 = hashlib.sha256(data)
+        data = f.read(chunk_size)
+        while data:
+            md5.update(data)
+            sha1.update(data)
+            sha256.update(data)
+            data = f.read(chunk_size)
+
     metadata = message["metadata"]
     metadata["md5"] = md5.hexdigest()
     metadata["sha1"] = sha1.hexdigest()

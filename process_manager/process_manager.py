@@ -110,7 +110,7 @@ def watch_input_directory():
                             message = {
                                 "path": new_file_name,
                                 "filename" : attrs["filename"],
-                                "filetype": "plain/text",
+                                "filetype": "unknown",
                                 "nifi_attrs": attrs,
                                 "history": [],
                                 "metadata": {}
