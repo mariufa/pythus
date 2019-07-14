@@ -18,12 +18,12 @@ class ProcessManager:
         self.setup_processors()
         self.watch_input_directory()
         self.rabbitMQConnection()
+        print(threading.active_count())
 
     def setup_processors(self):
         print("Setting up processors")
         self.processors = []
         processors_module_name = 'processors'
-        list_processors_name = 'test'
         for p in pkgutil.walk_packages([processors_module_name]):
             self.processors.append(importlib.import_module(processors_module_name + '.' + p.name))
 
@@ -41,6 +41,7 @@ class ProcessManager:
     def handle_event(self, ch, method, properties, body):
         message = json.loads(body)
         print(" [x]  Received %r" % message)
+        print(threading.active_count())
 
         filetype = message["filetype"]
         history = message["history"]
@@ -51,10 +52,15 @@ class ProcessManager:
                 break
 
         if processor_to_start != None:
-            message["history"].append(processor_to_start.__name__)
-            print(processor_to_start.__name__)
-            processor_thread = threading.Thread(target=processor.run, args=(message,))
-            processor_thread.start()
+            if threading.active_count() <= 5:
+                message["history"].append(processor_to_start.__name__)
+                print(processor_to_start.__name__)
+                processor_thread = threading.Thread(target=processor.run, args=(message,))
+                processor_thread.start()
+            else:
+                print("Too many active threads")
+                time.sleep(2)
+                sendToQueue(message)
         else:
             output_dir = "./output"
             attrs = self.generate_attrs(message)
