@@ -5,7 +5,9 @@ lazy-object-proxy==1.4.1
 mccabe==0.6.1
 pathtools==0.1.2
 pika==1.0.1
+Pillow==6.1.0
 pylint==2.3.1
+pytesseract==0.2.7
 python-magic==0.4.15
 PyYAML==5.1.1
 six==1.12.0
