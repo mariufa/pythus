@@ -63,7 +63,7 @@ class ProcessManager:
                 time.sleep(2)
                 sendEvent(message)
         else:
-            output_dir = "./output"
+            output_dir = "./data/output"
             attrs = self.generate_attrs(message)
             with open(message["path"], 'rb') as done_file:
                 file_size  = getsize(message["path"])
@@ -92,8 +92,8 @@ class ProcessManager:
 
 
 def watch_input_directory():
-    DIRECTORY_TO_WATCH = "./input"
-    DIRECTORY_TO_MOVE_TO = "./processing"
+    DIRECTORY_TO_WATCH = "./data/input"
+    DIRECTORY_TO_MOVE_TO = "./data/processing"
     while True:
         time.sleep(2)
         for root, dirs, filenames in walk(DIRECTORY_TO_WATCH):
