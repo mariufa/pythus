@@ -19,7 +19,6 @@ class ProcessManager:
         self.setup_processors()
         self.watch_input_directory()
         self.rabbitMQConnection()
-        print(threading.active_count())
 
     def setup_processors(self):
         print("Setting up processors")
@@ -27,6 +26,7 @@ class ProcessManager:
         processors_module_name = 'processors'
         for p in pkgutil.walk_packages([processors_module_name]):
             self.processors.append(importlib.import_module(processors_module_name + '.' + p.name))
+            print("Importing processor: %r" % p.name)
 
     def rabbitMQConnection(self):
         print("Setting up rabbitmq connection")
@@ -41,8 +41,6 @@ class ProcessManager:
 
     def handle_event(self, ch, method, properties, body):
         message = json.loads(body)
-        print(" [x]  Received %r" % message)
-        print(threading.active_count())
 
         filetype = message["filetype"]
         history = message["history"]
@@ -55,7 +53,6 @@ class ProcessManager:
         if processor_to_start != None:
             if threading.active_count() <= 5:
                 message["history"].append(processor_to_start.__name__)
-                print(processor_to_start.__name__)
                 processor_thread = threading.Thread(target=processor.run, args=(message,))
                 processor_thread.start()
             else:
@@ -65,6 +62,8 @@ class ProcessManager:
         else:
             output_dir = "./data/output"
             attrs = self.generate_attrs(message)
+            print(" [x]  Processed %r" % message)
+
             with open(message["path"], 'rb') as done_file:
                 file_size  = getsize(message["path"])
                 with open(join(output_dir, str(uuid.uuid4())), 'wb') as output_file:
@@ -78,10 +77,10 @@ class ProcessManager:
         attrs["filetype"] = message["filetype"]
         attrs["identifier"] = message["identifier"]
         
-        if message["parent"]:
+        if "parent" in message:
             attrs["parent"] = message["parent"]
         
-        if 'metadata' in message:
+        if "metadata" in message:
             attrs["metadata"] = message["metadata"]
         
         return attrs
@@ -99,8 +98,6 @@ def watch_input_directory():
         for root, dirs, filenames in walk(DIRECTORY_TO_WATCH):
             for name in filenames:
                 if (name[0] != '.'):
-                    print(name)
-
                     with open(join(root, name), 'rb') as f:
                         for attrs, offset, size in read_flow_file_stream(f):
                             f.seek(offset)
@@ -120,7 +117,7 @@ def watch_input_directory():
                                     chunk = f.read(chunk_size)
 
                             identifier = str(uuid.uuid4())
-                            if attrs["identifier"]:
+                            if "identifier" in attrs:
                                 identifier = attrs["identifier"]
 
                             message = {
@@ -133,7 +130,6 @@ def watch_input_directory():
                                 "metadata": {}
                             }
 
-                            print(message)
                             sendEvent(message)
                             remove(join(root, name))
 
