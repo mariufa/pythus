@@ -31,7 +31,11 @@ def write_flow_file_stream(fp, attrs, size, fileobj):
 
     for key, value in attrs.items():
         write_string(fp, key)
-        write_string(fp, json.dumps(value))
+        string_json_value = json.dumps(value)
+        if string_json_value[0] == '"' and string_json_value[len(string_json_value)-1] == '"':
+            write_string(fp, value)
+        else:
+            write_string(fp, string_json_value)
 
     fp.write(struct.pack('>Q', size))
     shutil.copyfileobj(fileobj, fp)
