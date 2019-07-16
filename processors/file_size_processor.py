@@ -7,5 +7,6 @@ def get_mime_types():
     ]
 
 def run(message):
-    message["filesize"] = getsize(message["size"])
+    metadata = message["metadata"]
+    metadata["filesize"] = getsize(message["path"])
     sendEvent(message)
