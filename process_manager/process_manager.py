@@ -5,6 +5,7 @@ import threading
 import json
 from nifi.flow_file_read import *
 from nifi.flow_file_write import *
+from utils.rabbitmq import sendEvent
 import uuid
 
 import time
@@ -60,7 +61,7 @@ class ProcessManager:
             else:
                 print("Too many active threads")
                 time.sleep(2)
-                sendToQueue(message)
+                sendEvent(message)
         else:
             output_dir = "./output"
             attrs = self.generate_attrs(message)
@@ -75,8 +76,14 @@ class ProcessManager:
         attrs = {}
         attrs["filename"] = message["filename"]
         attrs["filetype"] = message["filetype"]
+        attrs["identifier"] = message["identifier"]
+        
+        if message["parent"]:
+            attrs["parent"] = message["parent"]
+        
         if 'metadata' in message:
             attrs["metadata"] = message["metadata"]
+        
         return attrs
         
     def watch_input_directory(self):
@@ -97,7 +104,6 @@ def watch_input_directory():
                     with open(join(root, name), 'rb') as f:
                         for attrs, offset, size in read_flow_file_stream(f):
                             f.seek(offset)
-                            #data = f.read(size)
                             new_file_name = join(DIRECTORY_TO_MOVE_TO, str(uuid.uuid4()))
                             with open(new_file_name, 'wb') as new_f:
                                 chunk_size = 4096
@@ -113,7 +119,12 @@ def watch_input_directory():
                                         chunk_size = size
                                     chunk = f.read(chunk_size)
 
+                            identifier = str(uuid.uuid4())
+                            if attrs["identifier"]:
+                                identifier = attrs["identifier"]
+
                             message = {
+                                "identifier": identifier,
                                 "path": new_file_name,
                                 "filename" : attrs["filename"],
                                 "filetype": "unknown",
@@ -123,17 +134,6 @@ def watch_input_directory():
                             }
 
                             print(message)
-                            sendToQueue(message)
+                            sendEvent(message)
                             remove(join(root, name))
-
-def sendToQueue(message):
-    connection = pika.BlockingConnection(
-        pika.ConnectionParameters(host='localhost')
-    )
-    channel = connection.channel()
-    channel.queue_declare(queue='events')
-    channel.basic_publish(exchange='', routing_key='events', body=json.dumps(message))
-                
-        
-
 

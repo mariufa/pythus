@@ -39,4 +39,4 @@ def write_flow_file_stream(fp, attrs, size, fileobj):
 if __name__ == "__main__":
     with open('flowfiles.pkg', 'wb') as f:
         data = b"hello world"
-        write_flow_file_stream(f, {'filename': 'file1'}, len(data), io.BytesIO(data))
+        write_flow_file_stream(f, {'filename': 'file1', 'identifier': '123'}, len(data), io.BytesIO(data))
