@@ -3,35 +3,40 @@ import pkgutil
 import importlib
 import threading
 import json
-from nifi.flow_file_read import *
-from nifi.flow_file_write import *
 from utils.rabbitmq import sendEvent
 import uuid
-
 import time
-from os import walk, rename, remove
-from os.path import join, getsize
-import io
+import logging
+import os
+
+from process_manager.file_handler import FileHandler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class ProcessManager:
 
     def __init__(self):
         self.setup_processors()
-        self.watch_input_directory()
+        self.file_handler = FileHandler()
+        self.file_handler.watch_input_directory()
         self.rabbitMQConnection()
 
     def setup_processors(self):
-        print("Setting up processors")
+        logger.info("Setting up processors")
         self.processors = []
         processors_module_name = 'processors'
         for p in pkgutil.walk_packages([processors_module_name]):
             self.processors.append(importlib.import_module(processors_module_name + '.' + p.name))
-            print("Importing processor: %r" % p.name)
+            logger.info("Importing processor: %r" % p.name)
 
     def rabbitMQConnection(self):
-        print("Setting up rabbitmq connection")
+        logger.info("Setting up rabbitmq connection")
+
+        host = os.getenv('RABBIT_HOST', 'localhost')
+        port = os.getenv('RABBIT_PORT', '5672')
         connetion = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost')
+            pika.ConnectionParameters(host=host, port=port)
         )
         channel = connetion.channel()
         channel.queue_declare(queue="events")
@@ -56,80 +61,9 @@ class ProcessManager:
                 processor_thread = threading.Thread(target=processor.run, args=(message,))
                 processor_thread.start()
             else:
-                print("Too many active threads")
+                logger.info("Too many active threads")
                 time.sleep(2)
                 sendEvent(message)
         else:
-            output_dir = "./data/output"
-            attrs = self.generate_attrs(message)
-            print(" [x]  Processed %r" % message)
-
-            with open(message["path"], 'rb') as done_file:
-                file_size  = getsize(message["path"])
-                with open(join(output_dir, str(uuid.uuid4())), 'wb') as output_file:
-                    write_flow_file_stream(output_file, attrs, file_size, done_file)
-            remove(message["path"])
-            
-
-    def generate_attrs(self, message):
-        attrs = {}
-        attrs["filename"] = message["filename"]
-        attrs["filetype"] = message["filetype"]
-        attrs["identifier"] = message["identifier"]
-        
-        if "parent" in message:
-            attrs["parent"] = message["parent"]
-        
-        if "metadata" in message:
-            attrs["metadata"] = message["metadata"]
-        
-        return attrs
-        
-    def watch_input_directory(self):
-        watch_thread = threading.Thread(target=watch_input_directory)
-        watch_thread.start()
-
-
-def watch_input_directory():
-    DIRECTORY_TO_WATCH = "./data/input"
-    DIRECTORY_TO_MOVE_TO = "./data/processing"
-    while True:
-        time.sleep(2)
-        for root, dirs, filenames in walk(DIRECTORY_TO_WATCH):
-            for name in filenames:
-                if (name[0] != '.'):
-                    with open(join(root, name), 'rb') as f:
-                        for attrs, offset, size in read_flow_file_stream(f):
-                            f.seek(offset)
-                            new_file_name = join(DIRECTORY_TO_MOVE_TO, str(uuid.uuid4()))
-                            with open(new_file_name, 'wb') as new_f:
-                                chunk_size = 4096
-                                if size < chunk_size:
-                                    chunk_size = size
-                                chunk = f.read(chunk_size)
-                                while chunk:
-                                    new_f.write(chunk)
-                                    size = size - chunk_size
-                                    if size == 0:
-                                        break
-                                    elif size < chunk_size:
-                                        chunk_size = size
-                                    chunk = f.read(chunk_size)
-
-                            identifier = str(uuid.uuid4())
-                            if "identifier" in attrs:
-                                identifier = attrs["identifier"]
-
-                            message = {
-                                "identifier": identifier,
-                                "path": new_file_name,
-                                "filename" : attrs["filename"],
-                                "filetype": "unknown",
-                                "nifi_attrs": attrs,
-                                "history": [],
-                                "metadata": {}
-                            }
-
-                            sendEvent(message)
-                            remove(join(root, name))
+            self.file_handler.handle_output_file(message)
 
