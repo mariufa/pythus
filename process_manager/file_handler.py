@@ -71,7 +71,7 @@ class FileHandler:
             file_size  = getsize(message["path"])
             with open(tmp_output_filename, 'wb') as output_file:
                 write_flow_file_stream(output_file, attrs, file_size, done_file)
-        rename(tmp_output_filename, output_file)
+        rename(tmp_output_filename, output_filename)
         remove(message["path"])
 
     def generate_attrs(self, message):

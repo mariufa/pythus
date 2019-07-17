@@ -8,7 +8,7 @@ import uuid
 
 import time
 
-from file_handler import FileHandler
+from process_manager.file_handler import FileHandler
 
 class ProcessManager:
 
