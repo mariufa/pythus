@@ -1,0 +1,50 @@
+version: '2.2'
+
+services:
+
+  vpp:
+    image: marius/vpp:latest
+    container_name: vpp
+    environment:
+      - 'RABBIT_HOST=rabbit'
+    volumes:
+      - nifi-io:/opt/app/data
+    depends_on:
+      rabbit: 
+        condition: service_healthy
+    networks:
+      - proxy
+
+        
+
+  nifi:
+    image: apache/nifi:${NIFI_V:-latest}
+    container_name: nifi
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+
+    volumes:
+      - nifi-io:/io
+      - nifi-conf:/opt/nifi/nifi-current/conf
+
+  rabbit:
+    image: rabbitmq:${RABBIT_V:-latest}
+    container_name: rabbit
+    restart: unless-stopped
+    ports:
+      - '5672:5672'
+    networks:
+      - proxy
+    healthcheck:
+      timeout: 5s
+      interval: 5s
+      retries: 5
+      test: [ "CMD", "rabbitmqctl", "status" ]
+
+volumes:
+  nifi-io:
+  nifi-conf:
+
+networks:
+  proxy:
