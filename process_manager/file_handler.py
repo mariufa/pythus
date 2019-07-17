@@ -1,6 +1,7 @@
 import threading
 import time
 import uuid
+import logging
 from os import walk, remove, rename
 from os.path import join, getsize
 
@@ -8,11 +9,15 @@ from utils.rabbitmq import sendEvent
 from nifi.flow_file_read import read_flow_file_stream
 from nifi.flow_file_write import write_flow_file_stream
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 class FileHandler:
 
     INPUT_DIRECTORY = "./data/input"
     OUTPUT_DIRECTORY = "./data/output"
     PROCESSING_DIRECTORY = "./data/processing"
+
 
     def watch_input_directory(self):
         input_thread = threading.Thread(target=self.input_thread)
@@ -64,7 +69,7 @@ class FileHandler:
 
     def handle_output_file(self, message):
         attrs = self.generate_attrs(message)
-        print(" [x]  Processed %r" % message)
+        logger.info(" [x]  Processed %r" % message)
         tmp_output_filename = join(self.OUTPUT_DIRECTORY, "." + message["identifier"])
         output_filename = join(self.OUTPUT_DIRECTORY, message["identifier"])
         with open(message["path"], 'rb') as done_file:

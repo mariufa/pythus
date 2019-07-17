@@ -5,10 +5,14 @@ import threading
 import json
 from utils.rabbitmq import sendEvent
 import uuid
-
 import time
+import logging
+import os
 
 from process_manager.file_handler import FileHandler
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class ProcessManager:
 
@@ -19,17 +23,20 @@ class ProcessManager:
         self.rabbitMQConnection()
 
     def setup_processors(self):
-        print("Setting up processors")
+        logger.info("Setting up processors")
         self.processors = []
         processors_module_name = 'processors'
         for p in pkgutil.walk_packages([processors_module_name]):
             self.processors.append(importlib.import_module(processors_module_name + '.' + p.name))
-            print("Importing processor: %r" % p.name)
+            logger.info("Importing processor: %r" % p.name)
 
     def rabbitMQConnection(self):
-        print("Setting up rabbitmq connection")
+        logger.info("Setting up rabbitmq connection")
+
+        host = os.getenv('RABBIT_HOST', 'localhost')
+        port = os.getenv('RABBIT_PORT', '5672')
         connetion = pika.BlockingConnection(
-            pika.ConnectionParameters(host='localhost')
+            pika.ConnectionParameters(host=host, port=port)
         )
         channel = connetion.channel()
         channel.queue_declare(queue="events")
@@ -54,7 +61,7 @@ class ProcessManager:
                 processor_thread = threading.Thread(target=processor.run, args=(message,))
                 processor_thread.start()
             else:
-                print("Too many active threads")
+                logger.info("Too many active threads")
                 time.sleep(2)
                 sendEvent(message)
         else:
