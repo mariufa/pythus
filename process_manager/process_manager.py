@@ -56,14 +56,9 @@ class ProcessManager:
                 break
 
         if processor_to_start != None:
-            if threading.active_count() <= 5:
-                message["history"].append(processor_to_start.__name__)
-                processor_thread = threading.Thread(target=processor.run, args=(message,))
-                processor_thread.start()
-            else:
-                logger.info("Too many active threads")
-                time.sleep(2)
-                sendEvent(message)
+            message["history"].append(processor_to_start.__name__)
+            processor_thread = threading.Thread(target=processor.run, args=(message,))
+            processor_thread.start()
         else:
             self.file_handler.handle_output_file(message)
 
