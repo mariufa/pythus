@@ -24,7 +24,8 @@ def run(message):
             "filename" : "ocr.txt",
             "filetype": "plain/text",
             "history": [],
-            "metadata": {}
+            "metadata": {},
+            "original_file": False
         }
         sendEvent(new_message)
 

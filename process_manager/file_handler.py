@@ -2,7 +2,7 @@ import threading
 import time
 import uuid
 import logging
-from os import walk, remove, rename
+from os import walk, remove, rename, getenv
 from os.path import join, getsize
 
 from utils.rabbitmq import sendEvent
@@ -18,6 +18,8 @@ class FileHandler:
     OUTPUT_DIRECTORY = "./data/output"
     PROCESSING_DIRECTORY = "./data/processing"
 
+    def __init__(self):
+        self.OUTPUT_ORIGINAL_FILE = getenv('OUTPUT_ORIGINAL_FILE', 'True')
 
     def watch_input_directory(self):
         input_thread = threading.Thread(target=self.input_thread)
@@ -61,22 +63,24 @@ class FileHandler:
                     "filetype": "unknown",
                     "nifi_attrs": attrs,
                     "history": [],
-                    "metadata": {}
+                    "metadata": {},
+                    "original_file": True
                 }
 
                 sendEvent(message)
                 remove(join(root, name))
 
     def handle_output_file(self, message):
-        attrs = self.generate_attrs(message)
-        logger.info(" [x]  Processed %r" % message)
-        tmp_output_filename = join(self.OUTPUT_DIRECTORY, "." + message["identifier"])
-        output_filename = join(self.OUTPUT_DIRECTORY, message["identifier"])
-        with open(message["path"], 'rb') as done_file:
-            file_size  = getsize(message["path"])
-            with open(tmp_output_filename, 'wb') as output_file:
-                write_flow_file_stream(output_file, attrs, file_size, done_file)
-        rename(tmp_output_filename, output_filename)
+        if self.OUTPUT_ORIGINAL_FILE == 'True' or (self.OUTPUT_ORIGINAL_FILE == 'False' and message["original_file"] == False):
+            attrs = self.generate_attrs(message)
+            logger.info(" [x]  Processed %r" % message)
+            tmp_output_filename = join(self.OUTPUT_DIRECTORY, "." + message["identifier"])
+            output_filename = join(self.OUTPUT_DIRECTORY, message["identifier"])
+            with open(message["path"], 'rb') as done_file:
+                file_size  = getsize(message["path"])
+                with open(tmp_output_filename, 'wb') as output_file:
+                    write_flow_file_stream(output_file, attrs, file_size, done_file)
+            rename(tmp_output_filename, output_filename)
         remove(message["path"])
 
     def generate_attrs(self, message):
