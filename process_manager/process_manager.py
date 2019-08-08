@@ -17,10 +17,16 @@ logger = logging.getLogger(__name__)
 class ProcessManager:
 
     def __init__(self):
+        self.mkdirs()
         self.setup_processors()
         self.file_handler = FileHandler()
         self.file_handler.watch_input_directory()
         self.rabbitMQConnection()
+
+    def mkdirs(self):
+        os.makedirs(os.path.join('data', 'input'), exist_ok = True)
+        os.makedirs(os.path.join('data', 'processing'), exist_ok = True)
+        os.makedirs(os.path.join('data', 'output'), exist_ok = True)
 
     def setup_processors(self):
         logger.info("Setting up processors")
