@@ -16,13 +16,14 @@ def run(message):
     if text:
         processing_dir = "./data/processing/"
         identifier = str(uuid.uuid4())
-        with open(processing_dir + identifier, 'wb') as f:
+        workfile = processing_dir + identifier 
+        with open(workfile, 'wb') as f:
             f.write(text.encode('UTF-8'))
 
         new_message = {
             "identifier": identifier,
             "parent": message["identifier"],
-            "path": processing_dir + identifier,
+            "path": workfile,
             "filename" : "ocr.txt",
             "filetype": "plain/text",
             "history": [],
