@@ -47,11 +47,10 @@ class ProcessManager:
     def handle_event(self, ch, method, properties, body):
         message = json.loads(body)
 
-        filetype = message["filetype"]
         history = message["history"]
         processor_to_start = None
         for processor in self.processors:
-            if (filetype in processor.get_mime_types() or processor.get_mime_types()[0] == "*") and  processor.__name__ not in history:
+            if processor.want(message) and  processor.__name__ not in history:
                 processor_to_start = processor
                 break
 

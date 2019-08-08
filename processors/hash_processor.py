@@ -1,10 +1,8 @@
 from utils.rabbitmq import sendEvent
 import hashlib
 
-def get_mime_types():
-    return [
-        "*"
-    ]
+def want(message):
+    return True
 
 def run(message):
     md5 = hashlib.md5()

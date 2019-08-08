@@ -3,11 +3,13 @@ from PIL import Image
 import pytesseract
 import uuid
 
-def get_mime_types():
-    return [
+def want(message):
+    supported_filetypes = [
         "image/png",
         "image/jpeg"
     ]
+    filetype = message["filtype"]
+    return filetype in supported_filetypes
 
 def run(message):
     text = pytesseract.image_to_string(Image.open(message["path"]))
