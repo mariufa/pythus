@@ -8,7 +8,7 @@ def want(message):
         "image/png",
         "image/jpeg"
     ]
-    filetype = message["filtype"]
+    filetype = message["filetype"]
     return filetype in supported_filetypes
 
 def run(message):
@@ -25,7 +25,7 @@ def run(message):
             "parent": message["identifier"],
             "path": workfile,
             "filename" : "ocr.txt",
-            "filetype": "plain/text",
+            "filetype": "unknown",
             "history": [],
             "metadata": {},
             "original_file": False
