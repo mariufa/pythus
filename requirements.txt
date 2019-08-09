@@ -1,6 +1,7 @@
 argh==0.26.2
 astroid==2.2.5
 isort==4.3.21
+langdetect==1.0.7
 lazy-object-proxy==1.4.1
 mccabe==0.6.1
 pathtools==0.1.2
