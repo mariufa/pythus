@@ -3,7 +3,7 @@ version: '2.2'
 services:
 
   vpp:
-    image: marius/vpp:latest
+    image: vpp:latest
     container_name: vpp
     environment:
       - 'RABBIT_HOST=rabbit'
