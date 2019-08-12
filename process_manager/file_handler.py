@@ -61,7 +61,6 @@ class FileHandler:
                     "path": new_file_name,
                     "filename" : attrs["filename"],
                     "filetype": "unknown",
-                    "nifi_attrs": attrs,
                     "history": [],
                     "metadata": {},
                     "original_file": True
