@@ -30,7 +30,7 @@ python main.py
 
 For full extraction capabilities, extra system packages are needed.
 ```bash
-sudo apt install unzip unrar p7zip-full
+sudo apt install unzip unrar p7zip-full default-jre
 ```
 
 #### Supported input files

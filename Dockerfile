@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     unrar \
     p7zip-full \
+    default-jre \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
