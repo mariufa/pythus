@@ -7,7 +7,8 @@ import uuid
 
 def want(message):
     supported_mime_types = [
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/vnd.oasis.opendocument.text"
     ]
     filetype = message["filetype"]
     return filetype in supported_mime_types
