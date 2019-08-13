@@ -6,7 +6,9 @@ import shutil
 
 def want(message):
     supported_mime_types = [
-        "application/zip"
+        "application/zip",
+        "application/gzip",
+        "application/x-iso9660-image"
     ]
     filetype = message["filetype"]
     return filetype in supported_mime_types
@@ -48,4 +50,4 @@ def run(message):
 
 if __name__ == "__main__":
     os.makedirs('tmp', exist_ok = True)
-    Archive('test-tull.iso').extractall('tmp')
+    Archive('arch.iso').extractall('tmp')
