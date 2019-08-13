@@ -8,6 +8,9 @@ RUN mkdir -p data/input data/output/ data/processing
 RUN apt-get update && apt-get install -y \
     python3-pip \
     tesseract-ocr \
+    unzip \
+    unrar \
+    p7zip-full \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . .
