@@ -38,17 +38,18 @@ class ProcessManager:
             logger.info("Importing processor: %r" % p.name)
 
     def rabbitMQConnection(self):
-        logger.info("Setting up rabbitmq connection")
+        while True:
+            logger.info("Setting up rabbitmq connection")
 
-        host = os.getenv('RABBIT_HOST', 'localhost')
-        port = os.getenv('RABBIT_PORT', '5672')
-        connetion = pika.BlockingConnection(
-            pika.ConnectionParameters(host=host, port=port)
-        )
-        channel = connetion.channel()
-        channel.queue_declare(queue="events")
-        channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=True)
-        channel.start_consuming()
+            host = os.getenv('RABBIT_HOST', 'localhost')
+            port = os.getenv('RABBIT_PORT', '5672')
+            connetion = pika.BlockingConnection(
+                pika.ConnectionParameters(host=host, port=port)
+            )
+            channel = connetion.channel()
+            channel.queue_declare(queue="events")
+            channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=True)
+            channel.start_consuming()
 
 
     def handle_event(self, ch, method, properties, body):
