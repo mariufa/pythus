@@ -28,6 +28,11 @@ mkdir input output processing
 python main.py
 ```
 
+For full extraction capabilities, extra system packages are needed.
+```bash
+sudo apt install unzip unrar p7zip-full
+```
+
 #### Supported input files
 The files need to be NIFI flow file streams
 
