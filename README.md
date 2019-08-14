@@ -1,4 +1,4 @@
-# violent-python-processing
+# Pythus
 
 ## Getting started
 
