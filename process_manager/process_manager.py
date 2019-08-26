@@ -8,6 +8,8 @@ import uuid
 import time
 import logging
 import os
+import time
+from multiprocessing import Pool
 
 from process_manager.file_handler import FileHandler
 
@@ -18,6 +20,7 @@ logging.getLogger("pika").setLevel(logging.WARNING)
 class ProcessManager:
 
     def __init__(self):
+        self.pool = Pool(processes=1) 
         self.mkdirs()
         self.setup_processors()
         self.file_handler = FileHandler()
@@ -38,23 +41,23 @@ class ProcessManager:
             logger.info("Importing processor: %r" % p.name)
 
     def rabbitMQConnection(self):
-        while True:
-            logger.info("Setting up rabbitmq connection")
+        logger.info("Setting up rabbitmq connection")
 
-            host = os.getenv('RABBIT_HOST', 'localhost')
-            port = os.getenv('RABBIT_PORT', '5672')
-            connetion = pika.BlockingConnection(
-                pika.ConnectionParameters(host=host, port=port)
-            )
-            channel = connetion.channel()
-            channel.queue_declare(queue="events")
-            channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=True)
-            channel.start_consuming()
+        host = os.getenv('RABBIT_HOST', 'localhost')
+        port = os.getenv('RABBIT_PORT', '5672')
+        connetion = pika.BlockingConnection(
+            pika.ConnectionParameters(host=host, port=port)
+        )
+        channel = connetion.channel()
+        args = {"x-max-priority": 2}
+        channel.queue_declare(queue="events", arguments=args)
+        channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=True)
+        channel.start_consuming()
 
 
     def handle_event(self, ch, method, properties, body):
         message = json.loads(body)
-
+        logger.info(properties)
         history = message["history"]
         processor_to_start = None
         for processor in self.processors:
@@ -63,9 +66,12 @@ class ProcessManager:
                 break
 
         if processor_to_start != None:
+            ident = uuid.uuid4()
+            
             message["history"].append(processor_to_start.__name__)
-            processor_thread = threading.Thread(target=processor.run, args=(message,))
-            processor_thread.start()
+            self.pool.apply_async(processor.run, (message,))
+            #processor_thread = threading.Thread(target=processor.run, args=(message,))
+            #processor_thread.start()
         else:
             self.file_handler.handle_output_file(message)
 

@@ -5,6 +5,8 @@ import logging
 from os import walk, remove, rename, getenv
 from os.path import join, getsize
 
+from multiprocessing import Process
+
 from utils.rabbitmq import sendEvent
 from nifi.flow_file_read import read_flow_file_stream
 from nifi.flow_file_write import write_flow_file_stream
@@ -22,15 +24,24 @@ class FileHandler:
         self.OUTPUT_ORIGINAL_FILE = getenv('OUTPUT_ORIGINAL_FILE', 'True')
 
     def watch_input_directory(self):
-        input_thread = threading.Thread(target=self.input_thread)
+        #input_thread = threading.Thread(target=self.input_thread)
+        #input_thread.start()
+        input_thread = Process(target=self.input_thread)
         input_thread.start()
 
+
     def input_thread(self):
+        count = 0
         while True:
             time.sleep(1)
             for root, dirs, filenames in walk(self.INPUT_DIRECTORY):
                 for name in filenames:
                     if (name[0] != '.'):
+                        if (count > 50):
+                            time.sleep(2)
+                            count = 0
+                        count += 1
+                        logger.info("Picked up file: " + name)
                         self.handle_input_file(root, name)
     
     def handle_input_file(self, root, name):
@@ -66,7 +77,7 @@ class FileHandler:
                     "original_file": True
                 }
 
-                sendEvent(message)
+                sendEvent(message, priority=0)
                 remove(join(root, name))
 
     def handle_output_file(self, message):
