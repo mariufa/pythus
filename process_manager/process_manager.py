@@ -68,7 +68,7 @@ class ProcessManager:
         if processor_to_start != None:
             message["history"].append(processor_to_start.__name__)
             #self.pool.apply_async(processor.run, (message,))
-            processor.run(message)
+            processor_to_start.run(message)
             #processor_thread = threading.Thread(target=processor.run, args=(message,))
             #processor_thread.start()
         else:
