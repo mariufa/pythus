@@ -6,6 +6,8 @@ from os import walk, remove, rename, getenv
 from os.path import join, getsize
 
 from multiprocessing import Process
+import pika
+import os
 
 from utils.rabbitmq import sendEvent
 from nifi.flow_file_read import read_flow_file_stream
@@ -31,18 +33,27 @@ class FileHandler:
 
 
     def input_thread(self):
-        count = 0
+        host = os.getenv('RABBIT_HOST', '127.0.0.1')
+        port = os.getenv('RABBIT_PORT', '5672')
+        connection = pika.BlockingConnection(
+            pika.ConnectionParameters(host=host, port=port, credentials=pika.credentials.PlainCredentials('guest', 'guest'))
+        )
+        channel = connection.channel()
+        
         while True:
             time.sleep(1)
             for root, dirs, filenames in walk(self.INPUT_DIRECTORY):
                 for name in filenames:
                     if (name[0] != '.'):
-                        if (count > 50):
-                            time.sleep(2)
-                            count = 0
-                        count += 1
-                        logger.info("Picked up file: " + name)
+                        queue = channel.queue_declare(queue="events", durable=True, exclusive=False, auto_delete=False, passive=True)
+                        logger.info(queue.method.message_count)
+
+                        # More than 5 file will be picked up. Rabbitmq updates queue count to slow.
+                        while (queue.method.message_count >= 15):
+                            queue = channel.queue_declare(queue="events", durable=True, exclusive=False, auto_delete=False, passive=True)
+                            time.sleep(1)
                         self.handle_input_file(root, name)
+                        logger.info("Picked up file: " + name)
     
     def handle_input_file(self, root, name):
         with open(join(root, name), 'rb') as f:
@@ -77,7 +88,7 @@ class FileHandler:
                     "original_file": True
                 }
 
-                sendEvent(message, priority=0)
+                sendEvent(message)
                 remove(join(root, name))
 
     def handle_output_file(self, message):

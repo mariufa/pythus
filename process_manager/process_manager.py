@@ -43,21 +43,21 @@ class ProcessManager:
     def rabbitMQConnection(self):
         logger.info("Setting up rabbitmq connection")
 
-        host = os.getenv('RABBIT_HOST', 'localhost')
+        host = os.getenv('RABBIT_HOST', '127.0.0.1')
         port = os.getenv('RABBIT_PORT', '5672')
         connetion = pika.BlockingConnection(
             pika.ConnectionParameters(host=host, port=port)
         )
         channel = connetion.channel()
-        args = {"x-max-priority": 2}
-        channel.queue_declare(queue="events", arguments=args)
-        channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=True)
+        queue = channel.queue_declare(queue="events", durable=True, exclusive=False, auto_delete=False)
+        channel.basic_qos(prefetch_count=1)
+        channel.basic_consume(queue="events", on_message_callback=self.handle_event, auto_ack=False)
         channel.start_consuming()
 
 
     def handle_event(self, ch, method, properties, body):
         message = json.loads(body)
-        logger.info(properties)
+        ch.basic_ack(method.delivery_tag)
         history = message["history"]
         processor_to_start = None
         for processor in self.processors:
@@ -66,10 +66,9 @@ class ProcessManager:
                 break
 
         if processor_to_start != None:
-            ident = uuid.uuid4()
-            
             message["history"].append(processor_to_start.__name__)
-            self.pool.apply_async(processor.run, (message,))
+            #self.pool.apply_async(processor.run, (message,))
+            processor.run(message)
             #processor_thread = threading.Thread(target=processor.run, args=(message,))
             #processor_thread.start()
         else:
