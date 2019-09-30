@@ -1,16 +1,10 @@
 import pika
 import pkgutil
 import importlib
-import threading
 import json
 from utils.rabbitmq import sendEvent
-import uuid
-import time
 import logging
 import os
-import time
-from multiprocessing import Pool
-
 from process_manager.file_handler import FileHandler
 
 logging.basicConfig(level=logging.INFO)
@@ -20,7 +14,6 @@ logging.getLogger("pika").setLevel(logging.WARNING)
 class ProcessManager:
 
     def __init__(self):
-        self.pool = Pool(processes=1) 
         self.mkdirs()
         self.setup_processors()
         self.file_handler = FileHandler()
@@ -67,10 +60,6 @@ class ProcessManager:
 
         if processor_to_start != None:
             message["history"].append(processor_to_start.__name__)
-            #self.pool.apply_async(processor.run, (message,))
             processor_to_start.run(message)
-            #processor_thread = threading.Thread(target=processor.run, args=(message,))
-            #processor_thread.start()
         else:
             self.file_handler.handle_output_file(message)
-
