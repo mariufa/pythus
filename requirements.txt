@@ -19,7 +19,7 @@ PyPDF2==1.26.0
 pytesseract==0.2.7
 python-magic==0.4.15
 pyunpack==0.1.2
-PyYAML==5.1.1
+PyYAML==5.4
 rope==0.14.0
 simplejson==3.16.0
 six==1.12.0
